@@ -21,14 +21,12 @@ Opt("TrayAutoPause",0)
 
 _Singleton("robot-R")
 
-Global $config_file_name, $log_file_name, $username, $password, $retry_pause, $run, $run_work_dir, $login[8], $logout[8], $shutdown[8], $radio[4], $radio_flag
+Global $config_file_name, $log_file_name, $username, $password, $retry_pause, $run, $run_work_dir, $reboot, $radio[4], $radio_flag
 
 Dim $set_username, $set_password, $set_login, $set_logout
 $retry_pause = 10 * 1000
 $config_file_name = "robot-R.ini"
 $log_file_name = "robot-R.log"
-$set_login = "80000"
-$set_logout = "170000"
 
 TraySetToolTip("robot-R")
 HotKeySet("{F1}", "_ToggleMuteMaster" )
@@ -58,20 +56,12 @@ $oMediaPlaySettings=$oMediaPlayer.Settings
 
 #Region Main
 While 1
-	If Now(1) = $login[@WDAY] Then
-		If CheckNow(7) = 1 AND $shutdown[@WDAY] = 1 Then Shutdown(6)
-	ElseIf Now(1) = $logout[@WDAY] Then
-		CheckNow(7)
-        ProcessClose("Skype.exe")
+	If Now(1) = $reboot Then
+		Shutdown(6)
 	ElseIf FileGetTime($config_file_name,0,1)=Now(0) Then 
 		init()
 	EndIf
-	WinSetState ( "¹q¤l¯f¾úÃ±³¹°õ¦æª¬ºA", "", @SW_HIDE )
-    if WinExists("ÃÙ§U¤u§@¶¥¬q") Then
-        ControlClick( "ÃÙ§U¤u§@¶¥¬q", "", "[CLASS:Button; TEXT:½T©w]" )
-    EndIf
-	WinSetState ( "C:\WINDOWS\system32\cmd.exe", "", @SW_HIDE )
-	WinSetState ( "CCNofity_Tooltip", "", @SW_HIDE )
+	WinSetState ( _Base64Decode("6Zu75a2Q55eF5q2357C956ug5Z+36KGM54uA5oWL"), "", @SW_HIDE )
 WEnd
 
 Exit
@@ -85,11 +75,7 @@ Func init()
 	$radio_flag = 0
 	$username = IniRead($config_file_name, "DailyLog", "username", 0)
 	$password = IniRead($config_file_name, "DailyLog", "password", 0)
-	For $i=1 to 7
-		$login[$i] = Number(IniRead($config_file_name, "Login", "W"&String($i), 80000))
-		$logout[$i] = Number(IniRead($config_file_name, "Logout", "W"&String($i), 170000))
-		$shutdown[$i] = Number(IniRead($config_file_name, "Shutdown", "W"&String($i), 0))
-	Next
+	$reboot = IniRead($config_file_name, "Reboot", "time", 70000)
 	
 	For $j=1 to 3
 		$radio[$j] = IniRead($config_file_name, "Radio", "R"&String($j), "")
@@ -118,12 +104,11 @@ Func SetConfig()
 	IniWrite($config_file_name, "DailyLog", "password", $set_password)
 	IniWrite($config_file_name, "ExternalProgram", "run", "")
 	IniWrite($config_file_name, "ExternalProgram", "workdir", "")
-	Dim $i
-	For $i=1 to 7
-		IniWrite($config_file_name, "Login", "W"&String($i), $set_login)
-		IniWrite($config_file_name, "Logout", "W"&String($i), $set_logout)
-		IniWrite($config_file_name, "Shutdown", "W"&String($i), 0)
-	Next
+	IniWrite($config_file_name, "Reboot", "time", 70000)
+	IniWrite($config_file_name, "Radio", "R1", "mms://bcr.media.hinet.net/RA000018")
+	IniWrite($config_file_name, "Radio", "R2", "mms://bcr.media.hinet.net/RA000009")
+	IniWrite($config_file_name, "Radio", "R3", "mms://bcr.media.hinet.net/RA000008")
+	
 EndFunc   ;==>SetConfig
 #Endregion
 
@@ -162,26 +147,17 @@ EndFunc
 #Region WorkShiftFunctions
 
 Func ManualCheck ()
-	CheckNow(7)
+	CheckNow()
 EndFunc
 
-Func CheckNow($reson_number)
-	Local $try, $oIE, $oForm, $oQuery, $oLogin, $oCheckbox, $oObjs, $aLogTable, $reson_value[9], $return=0, $element, $lastCheck, $startCheck, $todayHour1, $todayHour2
+Func CheckNow()
+	Local $try, $oIE, $oForm, $oQuery, $oLogin, $oCheckbox, $oObjs, $aLogTable, $reson_value, $return=0, $element, $lastCheck, $startCheck, $todayHour1, $todayHour2
 	TrayTip ( "Checking...", "", 10, 1 )
 	$startCheck = Now(0)
-	$reson_value[1]="¬Ý¶E"
-	$reson_value[2]="¶}¤M¡B±µ¥Í¡BÀË¬d"
-	$reson_value[3]="¬d©Ð"
-	$reson_value[4]="·|Ä³"
-	$reson_value[5]="±Ð¾Ç"
-	$reson_value[6]="¯f¾ú¾ã²z"
-	$reson_value[7]="¬Ý¤ù§PÅª"
-	$reson_value[8]="¬ã¨s¡B¹êÅç"
-	If $reson_number < 0 Or $reson_number > 8 Then
-		$reson_number = 0
-	EndIf
+	$reson_value=_Base64Decode("55yL54mH5Yik6K6A")
 
-	For $try = 1 To 3
+
+	For $try = 1 To 1
 		;Login
 		$oIE=_IECreate("http://192.168.200.4/drtime/default.asp", 0, 0, 1, 0)
 		$oForm = _IEFormGetCollection($oIE, 0)
@@ -195,11 +171,10 @@ Func CheckNow($reson_number)
 		
 		;Selective reson
 		$oForm = _IEFormGetCollection($oIE, 0)
-		_IEFormElementCheckboxSelect ($oForm, $reson_value[$reson_number])
-		Sleep(1000)
+		_IEFormElementCheckboxSelect ($oForm, $reson_value)
 		$oObjs = _IETagNameGetCollection ($oIE, "input")
 		For $oObj In $oObjs
-			If $oObj.value = "½T¡@»{" Then
+			If $oObj.name = "submit" Then
 				_IEAction($oObj, "click")
 				ExitLoop
 			Endif
@@ -269,3 +244,24 @@ EndFunc
     
 #Endregion
 
+Func _Base64Decode($sData)
+    Local $oXml = ObjCreate("Msxml2.DOMDocument")
+    If Not IsObj($oXml) Then
+        SetError(1, 1, 0)
+    EndIf
+
+    Local $oElement = $oXml.createElement("b64")
+    If Not IsObj($oElement) Then
+        SetError(2, 2, 0)
+    EndIf
+
+    $oElement.dataType = "bin.base64"
+    $oElement.Text = $sData
+    Local $sReturn = BinaryToString($oElement.nodeTypedValue, 4)
+
+    If StringLen($sReturn) = 0 Then
+        SetError(3, 3, 0)
+    EndIf
+
+    Return $sReturn
+EndFunc
